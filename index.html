@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hikari Bunko - Premium Light Novel Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Dela+Gothic+One&display=swap');
+        body { background: #050508; color: #eee; font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; }
+        .anime-font { font-family: 'Dela Gothic One', cursive; }
+        .glass { background: rgba(255,255,255,0.02); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
+        .ad-container { background: rgba(255,255,255,0.01); border: 1px dashed rgba(255,255,255,0.1); border-radius: 20px; display: flex; align-items: center; justify-content: center; }
+        .page-content { display: none; }
+        .page-content.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .chip.active { background: #db2777; color: white; border-color: #db2777; }
+    </style>
+</head>
+<body class="pb-10">
+
+    <!-- ANIME TOAST -->
+    <div id="toast" class="fixed top-[-100px] left-1/2 -translate-x-1/2 glass border-2 border-white border-t-0 px-8 py-3 rounded-b-3xl font-black text-[10px] uppercase z-[10000] transition-all duration-500">Welcome Senpai! 🌸</div>
+
+    <!-- NAVBAR -->
+    <nav class="p-5 sticky top-0 z-[1000] glass flex justify-between items-center px-8">
+        <h1 onclick="showPage('home')" class="anime-font text-pink-500 text-xl cursor-pointer tracking-tighter">HIKARI</h1>
+        <div class="flex gap-4 items-center">
+            <button onclick="toggleLang()" class="text-[9px] font-black border border-white/20 px-3 py-1 rounded-full uppercase">EN/ID</button>
+            <div id="status" class="w-3 h-3 bg-red-500 rounded-full"></div>
+        </div>
+    </nav>
+
+    <!-- PAGE: HOME -->
+    <main id="page-home" class="page-content active max-w-6xl mx-auto p-6">
+        
+        <!-- [1] IKLAN HEADER -->
+        <div class="ad-container w-full min-h-[90px] mb-10">
+            <!-- PASTE ADSTERRA BANNER 728x90 HERE -->
+            <span class="text-[9px] text-gray-700 font-bold uppercase tracking-widest">Header Advertisement</span>
+        </div>
+
+        <!-- SEARCH & FILTER -->
+        <section class="mb-10">
+            <input type="text" id="searchInp" onkeyup="if(event.key==='Enter') { currentPage=1; loadData(); }" placeholder="Search title..." class="w-full p-4 rounded-3xl glass border border-white/10 outline-none text-sm mb-4 focus:border-pink-500 transition-all">
+            <div id="sourceChips" class="flex gap-2 overflow-x-auto no-scrollbar"></div>
+        </section>
+
+        <!-- GRID + [2] IKLAN FEED -->
+        <div id="grid" class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12"></div>
+
+        <!-- PAGINATION -->
+        <div class="flex justify-center items-center gap-6 mb-10">
+            <button onclick="changePage(-1)" class="w-12 h-12 rounded-2xl glass flex items-center justify-center hover:bg-pink-600 transition"><i class="fas fa-chevron-left"></i></button>
+            <span id="pageInfo" class="font-black text-pink-500 text-sm italic uppercase tracking-widest text-center">PAGE 1</span>
+            <button onclick="changePage(1)" class="w-12 h-12 rounded-2xl glass flex items-center justify-center hover:bg-pink-600 transition"><i class="fas fa-chevron-right"></i></button>
+        </div>
+
+        <!-- [3] IKLAN BOTTOM -->
+        <div class="ad-container w-full min-h-[150px] mb-10">
+            <!-- PASTE ADSTERRA NATIVE ADS HERE -->
+            <span class="text-[9px] text-gray-700 font-bold uppercase tracking-widest">Bottom Advertisement</span>
+        </div>
+    </main>
+
+    <!-- PAGE: STATIC (About, Privacy, Disclaimer) -->
+    <main id="page-static" class="page-content max-w-3xl mx-auto p-6 pt-10">
+        <div class="glass p-10 rounded-[3rem] border border-white/10">
+            <h2 id="static-title" class="anime-font text-3xl text-pink-500 mb-6 uppercase tracking-tighter"></h2>
+            <div id="static-body" class="text-gray-400 text-sm leading-relaxed space-y-4"></div>
+            <button onclick="showPage('home')" class="mt-10 px-8 py-3 bg-pink-600 rounded-full font-black text-[10px] uppercase">Back Home</button>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="max-w-6xl mx-auto p-10 border-t border-white/5 text-center">
+        <div class="flex flex-wrap justify-center gap-6 mb-6 text-[10px] font-black uppercase text-gray-500">
+            <a href="javascript:void(0)" onclick="showPage('about')">About</a>
+            <a href="javascript:void(0)" onclick="showPage('privacy')">Privacy</a>
+            <a href="javascript:void(0)" onclick="showPage('disclaimer')">Disclaimer</a>
+        </div>
+        <p class="text-[8px] text-gray-700 tracking-widest uppercase">&copy; 2024 Hikari Bunko</p>
+    </footer>
+
+    <script>
+        const TOKEN = "8787735730:AAFzz21ucAMzsaIt707aCG5xfPQJkpUmz_E";
+        let API_URL = "", currentPage = 1, currentSource = "", currentLang = localStorage.getItem('hikari_lang') || 'en';
+
+        const i18n = {
+            en: { read: "READ NOW", welcome: "Okaeri, Senpai! 🌸", about_title: "About Us", about_body: "Global Aggregator for Light Novels.", privacy_title: "Privacy Policy", privacy_body: "We do not collect personal data.", disclaimer_title: "Disclaimer", disclaimer_body: "All links are owned by original translators." },
+            id: { read: "BACA SEKARANG", welcome: "Selamat Datang, Senpai! 🌸", about_title: "Tentang Kami", about_body: "Agregator global untuk Novel Ringan.", privacy_title: "Privasi", privacy_body: "Kami tidak mengumpulkan data pribadi.", disclaimer_title: "Sanggahan", disclaimer_body: "Tautan adalah milik penerjemah asli." }
+        };
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg; t.classList.add('active');
+            setTimeout(() => t.classList.remove('active'), 3000);
+        }
+
+        function showPage(page) {
+            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+            if(page === 'home') document.getElementById('page-home').classList.add('active');
+            else {
+                document.getElementById('page-static').classList.add('active');
+                document.getElementById('static-title').innerText = i18n[currentLang][page + '_title'];
+                document.getElementById('static-body').innerText = i18n[currentLang][page + '_body'];
+            }
+            window.scrollTo(0,0);
+        }
+
+        async function init() {
+            try {
+                const res = await fetch(`https://api.telegram.org/bot${TOKEN}/getUpdates?offset=-1`);
+                const data = await res.json();
+                API_URL = data.result[0].message.text.split("SVR_URL:")[1].trim();
+                document.getElementById('status').classList.replace('bg-red-500', 'bg-green-500');
+                loadSources(); loadData();
+            } catch(e) { showToast("Backend Offline! 💢"); }
+        }
+
+        async function loadSources() {
+            const res = await fetch(`${API_URL}/api/sources`);
+            const sources = await res.json();
+            const cont = document.getElementById('sourceChips');
+            cont.innerHTML = `<div onclick="filterSrc('', this)" class="chip active px-6 py-2 rounded-full glass border border-white/10 text-[10px] font-bold uppercase cursor-pointer">All</div>` +
+                sources.map(s => `<div onclick="filterSrc('${s}', this)" class="chip px-6 py-2 rounded-full glass border border-white/10 text-[10px] font-bold uppercase cursor-pointer">${s}</div>`).join('');
+        }
+
+        async function loadData() {
+            const q = document.getElementById('searchInp').value;
+            const res = await fetch(`${API_URL}/api/news?page=${currentPage}&q=${q}&src=${currentSource}`);
+            const data = await res.json();
+            const grid = document.getElementById('grid');
+            
+            grid.innerHTML = data.map((i, index) => {
+                // IKLAN FEED: Muncul setiap 4 item
+                let ad = ((index + 1) % 4 === 0) ? `<div class="col-span-2 md:col-span-1 glass rounded-[2.5rem] p-6 border-dashed border-2 border-pink-500/20 flex flex-col items-center justify-center text-center"><p class="text-[8px] font-black text-pink-500 uppercase mb-4 tracking-widest">Sponsored</p><div class="text-[10px] italic text-gray-600">Adsterra Native Ad Space</div></div>` : "";
+                
+                return ad + `
+                <div class="glass rounded-[2.5rem] p-4 border border-white/5 flex flex-col justify-between hover:border-pink-500 transition duration-500">
+                    <img src="${API_URL}/proxy?url=${encodeURIComponent(i.image)}" class="w-full h-44 object-cover rounded-[2rem] mb-4" loading="lazy">
+                    <h3 class="font-bold text-[11px] h-10 line-clamp-2 px-2 mb-4 leading-tight">${i.title}</h3>
+                    <div class="flex justify-between items-center gap-2">
+                        <span class="text-[9px] font-bold text-gray-600"><i class="fas fa-eye mr-1"></i>${i.clicks}</span>
+                        <a href="${i.link}" target="_blank" onclick="track('${i.link}')" class="flex-1 py-3 bg-pink-600 rounded-2xl text-[9px] font-black text-center uppercase tracking-widest">${i18n[currentLang].read}</a>
+                    </div>
+                </div>`;
+            }).join('');
+            document.getElementById('pageInfo').innerText = `PAGE ${currentPage}`;
+        }
+
+        function changePage(step) { if(currentPage + step < 1) return; currentPage += step; loadData(); window.scrollTo(0, 500); }
+        function filterSrc(s, el) { currentSource = s; document.querySelectorAll('.chip').forEach(c => c.classList.remove('active')); el.classList.add('active'); loadData(); }
+        function toggleLang() { currentLang = currentLang === 'en' ? 'id' : 'en'; localStorage.setItem('hikari_lang', currentLang); location.reload(); }
+        function track(l) { fetch(`${API_URL}/api/track?link=${encodeURIComponent(l)}`); showToast(i18n[currentLang].read === "READ NOW" ? "Enjoy Reading! 📖" : "Selamat Membaca! 📖"); }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
